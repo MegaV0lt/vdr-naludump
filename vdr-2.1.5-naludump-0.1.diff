@@ -72,7 +72,7 @@ diff -Naur vdr-2.1.6/recorder.c vdr-2.1.6-naludump-0.1/recorder.c
 +  if (naluStreamProcessor) {
 +     long long int TotalPackets = naluStreamProcessor->GetTotalPackets();
 +     long long int DroppedPackets = naluStreamProcessor->GetDroppedPackets();
-+     isyslog("NALU fill dumper: %lld of %lld packets dropped, %lli%%", DroppedPackets, TotalPackets, TotalPackets ? DroppedPackets*100/TotalPackets : 0);
++     isyslog("NALU fill dumper: %lld of %lld packets dropped, %lli%% (%s)", DroppedPackets, TotalPackets, TotalPackets ? DroppedPackets*100/TotalPackets : 0, fileName->Name());
 +     delete naluStreamProcessor;
 +     }
    delete index;
