@@ -65,7 +65,7 @@ diff -Naur vdr-2.1.6/recorder.c vdr-2.1.6-naludump-0.1/recorder.c
    index = NULL;
    fileSize = 0;
    lastDiskSpaceCheck = time(NULL);
-@@ -216,6 +224,12 @@
+@@ -231,6 +239,12 @@
  cRecorder::~cRecorder()
  {
    Detach();
@@ -78,53 +78,44 @@ diff -Naur vdr-2.1.6/recorder.c vdr-2.1.6-naludump-0.1/recorder.c
    delete index;
    delete fileName;
    delete frameDetector;
-@@ -371,15 +371,37 @@
+@@ -371,12 +385,32 @@
                               }
                         t.Set(MAXBROKENTIMEOUT);
                         }
 -                    if (recordFile->Write(b, Count) < 0) {
 -                       LOG_ERROR_STR(fileName->Name());
 -                       break;
--                       }
++                    if (naluStreamProcessor) {
++                       naluStreamProcessor->PutBuffer(b, Count);
++                       bool Fail = false;
++                       while (true) {
++                             int OutLength = 0;
++                             uchar *OutData = naluStreamProcessor->GetBuffer(OutLength);
++                             if (!OutData || OutLength <= 0)
++                                break;
++                             if (recordFile->Write(OutData, OutLength) < 0) {
++                                LOG_ERROR_STR(fileName->Name());
++                                Fail = true;
++                                break;
++                                }
++                             fileSize += OutLength;
++                             }
++                       if (Fail)
++                          break;
+                        }
 -                    HandleErrors();
 -                    fileSize += Count;
--                    }
--                 }
--              ringBuffer->Del(Count);
-+                    if (naluStreamProcessor) {
-+                        naluStreamProcessor->PutBuffer(b, Count);
-+                        bool Fail = false;
-+                        while (true) {
-+                              int OutLength = 0;
-+                              uchar *OutData = naluStreamProcessor->GetBuffer(OutLength);
-+                              if (!OutData || OutLength <= 0)
-+                                 break;
-+                              if (recordFile->Write(OutData, OutLength) < 0) {
-+                                 LOG_ERROR_STR(fileName->Name());
-+                                 Fail = true;
-+                                 break;
-+                                 }
-+                              fileSize += OutLength;
-+                              }
-+                        if (Fail)
-+                           break;
-+                        }
-+                     else {
-+                        if (recordFile->Write(b, Count) < 0) {
-+                           LOG_ERROR_STR(fileName->Name());
-+                           break;
-+                           }
-+                        HandleErrors();
-+                        fileSize += Count;
-+                        }
-+                  HandleErrors();
-+                  fileSize += Count;
-+                  }
-+                }
-+               ringBuffer->Del(Count);
-               }
-            }
-         if (t.TimedOut()) {
++                    else {
++                       if (recordFile->Write(b, Count) < 0) {
++                          LOG_ERROR_STR(fileName->Name());
++                          break;
++                          }
++                       HandleErrors();
++                       fileSize += Count;
++                       }
+                     }
+                  }
+               ringBuffer->Del(Count);
 diff -Naur vdr-2.1.6/recorder.h vdr-2.1.6-naludump-0.1/recorder.h
 --- vdr-2.1.6/recorder.h	2010-12-27 12:17:04.000000000 +0100
 +++ vdr-2.1.6-naludump-0.1/recorder.h	2014-03-30 17:47:25.000000000 +0200
